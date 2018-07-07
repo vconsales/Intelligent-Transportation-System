@@ -80,13 +80,13 @@ PROCESS_THREAD(Process_1, ev, data) {
 	while(1) {
 		PROCESS_WAIT_EVENT();
 		if( ev == PROCESS_EVENT_MSG ){
-			if( strcmp(data, "EMER MAIN") == 0 ){
+			if( strcmp(data, "EMERG-MAIN") == 0 ){
 				intersection_state_new |= EMER_MAIN;
-			} else if( strcmp(data, "EMER SECO") == 0 ) {
+			} else if( strcmp(data, "EMERG-SECO") == 0 ) {
 				intersection_state_new |= EMER_SECO;
-			} else if( strcmp(data, "NORM MAIN") == 0 ) {
+			} else if( strcmp(data, "NORMA-MAIN") == 0 ) {
 				intersection_state_new |= NORM_MAIN;
-			} else if( strcmp(data, "NORM SECO") == 0 ) {
+			} else if( strcmp(data, "NORMA-SECO") == 0 ) {
 				intersection_state_new |= NORM_SECO;
 			}
 

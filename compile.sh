@@ -3,11 +3,11 @@
 cd ./G1
 make
 
-cd ./G2
+cd ../G2
 make
 
-cd ./TL1
+cd ../TL1
 make
 
-cd ./TL2
+cd ../TL2
 make

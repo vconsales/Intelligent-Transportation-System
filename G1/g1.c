@@ -9,6 +9,7 @@
 #include "dev/leds.h"
 #include "dev/serial-line.h"
 #include "net/rime/rime.h"
+#include "../commons.h"
 
 PROCESS(Process_1, "ground_sensor1");
 AUTOSTART_PROCESSES(&Process_1);
@@ -55,7 +56,8 @@ PROCESS_THREAD(Process_1, ev, data) {
 	PROCESS_BEGIN();
 	SENSORS_ACTIVATE(button_sensor);
 
-	broadcast_open(&broadcast, 559, &broadcast_call);
+	broadcast_open(&broadcast, BROADCAST_PORT, &broadcast_call);
+	// chiudere le connessioni quando si chiude il firmware
 
 	while(1) {
 		PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event && data == &button_sensor) );
@@ -66,9 +68,12 @@ PROCESS_THREAD(Process_1, ev, data) {
 			if(ev == sensors_event && data == &button_sensor){
 				// second press, emergency veichle
 				sprintf(message, "EMERG-MAIN");
-				packetbuf_copyfrom(message, strlen(message)+1);
-    			broadcast_send(&broadcast);
+			} else {
+				// timer scaduto
+				sprintf(message, "NORMA-MAIN");
 			}
+			packetbuf_copyfrom(message, strlen(message)+1);
+			broadcast_send(&broadcast);
 		}
 	}
 	PROCESS_END();
