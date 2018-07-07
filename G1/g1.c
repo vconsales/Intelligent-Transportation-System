@@ -68,6 +68,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor){
 				// second press, emergency veichle
+				printf("seconda pressione\n");
 				sprintf(message, "EMERG-MAIN");
 			} else {
 				// timer scaduto

@@ -9,6 +9,7 @@
 #include "dev/leds.h"
 #include "dev/serial-line.h"
 #include "net/rime/rime.h"
+#include "../commons.h"
 
 //semaforo nella strada di emergenza
 
@@ -50,11 +51,6 @@ static struct broadcast_conn broadcast;
 static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
 static struct runicast_conn runicast;
 
-#define NORM_SECO 0x01
-#define NORM_MAIN 0x02
-#define EMER_SECO 0x04
-#define EMER_MAIN 0x08
-
 PROCESS_THREAD(Process_1, ev, data) {
 	static struct etimer et;
 	unsigned char intersection_state_curr= 0x00;
@@ -66,7 +62,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 	PROCESS_BEGIN();
 	
 	static linkaddr_t recv;
-	recv.u8[0] = 20;
+	recv.u8[0] = 30;
 	recv.u8[1] = 0;
 
 	broadcast_open(&broadcast, 559, &broadcast_call);
