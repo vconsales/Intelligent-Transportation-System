@@ -88,42 +88,62 @@ PROCESS_THREAD(Process_1, ev, data) {
 				intersection_state_new |= NORM_SECO;
 			}
  
- 			printf("intersection_state_new:%x\n",intersection_state_new);
+ 			//printf("intersection_state_new:%x\n",intersection_state_new);
 
 			// nessuna macchina attraversa l'incrocio e passa 
 			// una macchina sulla strada principale
-			if( intersection_state_curr == 0x00 && 
-				(intersection_state_new & (EMER_MAIN | NORM_MAIN)) ) {
-				leds_off(LEDS_RED);
-				leds_on(LEDS_GREEN);
-				etimer_set(&et,CLOCK_SECOND*5);
-				intersection_state_curr = intersection_state_new;
-			} else if( intersection_state_curr == 0x00 && 
-				(intersection_state_new & (EMER_SECO | NORM_SECO)) ){
-				leds_on(LEDS_RED);
-				leds_off(LEDS_GREEN);
-				etimer_set(&et,CLOCK_SECOND*5);
-				intersection_state_curr = intersection_state_new;
+			if( intersection_state_curr == 0x00 ) {
+				if( intersection_state_new & (EMER_MAIN | NORM_MAIN) ) {
+					leds_off(LEDS_RED);
+					leds_on(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*5);
+					intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
+				} else if( intersection_state_new & (EMER_SECO | NORM_SECO) ){
+					leds_on(LEDS_RED);
+					leds_off(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*5);
+					intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
+				} 
 			}
-			printf("intersection_state_curr:%x\n",intersection_state_curr);
+			//printf("intersection_state_curr:%x\n",intersection_state_curr);
 		}
 		else if( etimer_expired(&et) ){
 			printf("expired intersection_state_curr:%x\n",intersection_state_curr);
 			if( intersection_state_curr == 0x00 ){
 				leds_toggle(LEDS_GREEN | LEDS_RED );
-				printf("nessun veicolo\n");
+				//printf("nessun veicolo\n");
 			} else {
 				// la macchina è stata schedulata
-				printf("macchina schedulata\n");
+				//printf("macchina schedulata\n");
 				intersection_state_new &= ~intersection_state_curr; 
 				intersection_state_curr = intersection_state_new;
 				leds_off(LEDS_RED | LEDS_GREEN);
-				printf("intersection_state_curr:%x\n",intersection_state_curr);
-				/*if( intersection_state_curr & (EMER_MAIN | NORM_MAIN) ){
-
-				}*/
+				
+				if( intersection_state_new & EMER_MAIN ) {
+					leds_off(LEDS_RED);
+					leds_on(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*5);
+					intersection_state_curr = intersection_state_new & EMER_MAIN;
+				} else if( intersection_state_new & EMER_SECO ){
+					leds_on(LEDS_RED);
+					leds_off(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*5);
+					intersection_state_curr = intersection_state_new & EMER_SECO;
+				} else if( intersection_state_new & NORM_MAIN ){
+					leds_off(LEDS_RED);
+					leds_on(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*5);
+					intersection_state_curr = intersection_state_new & NORM_MAIN ;
+				} else if( intersection_state_new & NORM_SECO ){
+					leds_on(LEDS_RED);
+					leds_off(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*5);
+					intersection_state_curr = intersection_state_new & NORM_SECO;
+				} else {
+					etimer_set(&et,CLOCK_SECOND*1);
+				}
 			}
-			etimer_set(&et,CLOCK_SECOND*1);
+			
 		}
 	}
 
