@@ -117,11 +117,11 @@ PROCESS_THREAD(Process_1, ev, data) {
 			printf("expired intersection_state_curr:%x\n",intersection_state_curr);
 			if( intersection_state_curr == 0x00 ){
 				leds_toggle(LEDS_GREEN | LEDS_RED );
-				etimer_set(&et,CLOCK_SECOND*1);
+				etimer_set(&et,CLOCK_SECOND*TOGGLE_PERIOD);
 				//printf("nessun veicolo\n");
 			} else {
 				// la macchina è stata schedulata
-				printf("macchina schedulata\n");
+				//printf("macchina schedulata\n");
 				intersection_state_new &= ~intersection_state_curr; 
 				intersection_state_curr = intersection_state_new;
 				leds_off(LEDS_RED | LEDS_GREEN);
@@ -147,7 +147,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & NORM_SECO;
 				} else {
-					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+					etimer_set(&et,CLOCK_SECOND*TOGGLE_PERIOD);
 				}
 			}
 			
