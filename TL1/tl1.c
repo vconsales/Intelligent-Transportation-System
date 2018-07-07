@@ -78,7 +78,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 	etimer_set(&et, CLOCK_SECOND*1);
 
 	while(1) {
-		PROCESS_WAIT_EVENT;
+		PROCESS_WAIT_EVENT();
 		if( ev == PROCESS_EVENT_MSG ){
 			if( strcmp(data, "EMER MAIN") == 0 ){
 				intersection_state_new |= EMER_MAIN;

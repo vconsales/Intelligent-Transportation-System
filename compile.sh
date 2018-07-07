@@ -1,13 +1,13 @@
 #!/bin/bash
 
-cd ./ground_sensor/G1
+cd ./G1
 make
 
-cd ./ground_sensor/G2
+cd ./G2
 make
 
-cd ./traffic_light/TL1
+cd ./TL1
 make
 
-cd ./traffic_light/TL2
+cd ./TL2
 make
