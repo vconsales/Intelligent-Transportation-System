@@ -64,7 +64,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 		PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event && data == &button_sensor) );
 		if(ev == sensors_event && data == &button_sensor)
 		{
-			etimer_set(&et, CLOCK_SECOND*0.5);
+			etimer_set(&et, CLOCK_SECOND*SECOND_PRESS);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor){
 				// second press, emergency veichle

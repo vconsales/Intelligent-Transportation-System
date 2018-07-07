@@ -78,11 +78,11 @@ PROCESS_THREAD(Process_1, ev, data) {
 	PROCESS_BEGIN();
 	
 	static linkaddr_t recv;
-	recv.u8[0] = 20;
+	recv.u8[0] = TL1_ADDR;
 	recv.u8[1] = 0;
 
 	broadcast_open(&broadcast, BROADCAST_PORT, &broadcast_call);
-	runicast_open(&runicast, 1024, &runicast_calls);
+	runicast_open(&runicast, TL1_TO_G1_PORT, &runicast_calls);
 
 	printf("Starting traffic schedule TL1...\n");
 	leds_on(LEDS_GREEN);

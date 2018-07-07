@@ -16,11 +16,12 @@
 PROCESS(Process_1, "traffic_schedule");
 AUTOSTART_PROCESSES(&Process_1);
 
-static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno){
+//non serve
+/*static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno){
 	static char buf[PACKETBUF_SIZE];
 	packetbuf_copyto(buf);
 	printf("runicast message received from %d.%d, msg:%s\n", from->u8[0], from->u8[1], buf);
-}
+}*/
  
  
 static void sent_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions)
@@ -48,7 +49,7 @@ static const struct broadcast_callbacks broadcast_call = {broadcast_recv, broadc
 static struct broadcast_conn broadcast;
  
  
-static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
+static const struct runicast_callbacks runicast_calls = {NULL, sent_runicast, timedout_runicast};
 static struct runicast_conn runicast;
 
 PROCESS_THREAD(Process_1, ev, data) {
@@ -62,58 +63,79 @@ PROCESS_THREAD(Process_1, ev, data) {
 	PROCESS_BEGIN();
 	
 	static linkaddr_t recv;
-	recv.u8[0] = 30;
+	recv.u8[0] = TL2_ADDR;
 	recv.u8[1] = 0;
 
-	broadcast_open(&broadcast, 559, &broadcast_call);
-	runicast_open(&runicast, 1024, &runicast_calls);
+	broadcast_open(&broadcast, BROADCAST_PORT, &broadcast_call);
+	runicast_open(&runicast, TL2_TO_G2_PORT, &runicast_calls);
 
-	printf("Starting traffic schedule TL1...\n");
+	printf("Starting traffic schedule TL2...\n");
 	leds_on(LEDS_GREEN);
 	leds_on(LEDS_RED);
 	etimer_set(&et, CLOCK_SECOND*1);
 
 	while(1) {
-		PROCESS_WAIT_EVENT;
+		PROCESS_WAIT_EVENT();
 		if( ev == PROCESS_EVENT_MSG ){
-			if( strcmp(data, "EMERG-MAIN") == 0 ){
-				intersection_state_new |= EMER_MAIN;
-			} else if( strcmp(data, "EMERG-SECO") == 0 ) {
-				intersection_state_new |= EMER_SECO;
-			} else if( strcmp(data, "NORMA-MAIN") == 0 ) {
-				intersection_state_new |= NORM_MAIN;
-			} else if( strcmp(data, "NORMA-SECO") == 0 ) {
-				intersection_state_new |= NORM_SECO;
-			}
+			detect_intersection_msg(data,&intersection_state_new);	
+ 
+ 			//printf("intersection_state_new:%x\n",intersection_state_new);
 
 			// nessuna macchina attraversa l'incrocio e passa 
 			// una macchina sulla strada principale
-			if( intersection_state_curr == 0x00 && 
-				(intersection_state_new & (EMER_MAIN | NORM_MAIN)) ) {
-				leds_off(LEDS_RED);
-				leds_on(LEDS_GREEN);
-				etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
-				intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
-			} else if( intersection_state_curr == 0x00 && 
-				(intersection_state_new & (EMER_SECO | NORM_SECO)) ){
-				leds_on(LEDS_RED);
-				leds_off(LEDS_GREEN);
-				etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
-				intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
-			}
-		}
-		else if( etimer_expired(&et) ){
-			if( intersection_state_curr == 0x00 )
-				leds_toggle(LEDS_GREEN | LEDS_RED );
-			else {
-				// la macchina è stata schedulata
-				intersection_state_new &= ~intersection_state_curr; 
-				intersection_state_curr = intersection_state_new;
-				if( intersection_state_curr & (EMER_MAIN | NORM_MAIN) ){
-
+			if( intersection_state_curr == 0x00 ) {
+				if( intersection_state_new & (EMER_SECO | NORM_SECO) ){
+					leds_on(LEDS_RED);
+					leds_off(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+					intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
+				} else if( intersection_state_new & (EMER_MAIN | NORM_MAIN) ) {
+					leds_off(LEDS_RED);
+					leds_on(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+					intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
 				}
 			}
-			etimer_reset(&et);
+			//printf("intersection_state_curr:%x\n",intersection_state_curr);
+		}
+		else if( etimer_expired(&et) ){
+			printf("expired intersection_state_curr:%x\n",intersection_state_curr);
+			if( intersection_state_curr == 0x00 ){
+				leds_toggle(LEDS_GREEN | LEDS_RED );
+				etimer_set(&et,CLOCK_SECOND*1);
+				//printf("nessun veicolo\n");
+			} else {
+				// la macchina è stata schedulata
+				printf("macchina schedulata\n");
+				intersection_state_new &= ~intersection_state_curr; 
+				intersection_state_curr = intersection_state_new;
+				leds_off(LEDS_RED | LEDS_GREEN);
+				
+				if( intersection_state_new & EMER_MAIN ) {
+					leds_on(LEDS_RED);
+					leds_off(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+					intersection_state_curr = intersection_state_new & EMER_MAIN;
+				} else if( intersection_state_new & EMER_SECO ){
+					leds_off(LEDS_RED);
+					leds_on(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+					intersection_state_curr = intersection_state_new & EMER_SECO;
+				} else if( intersection_state_new & NORM_MAIN ){
+					leds_on(LEDS_RED);
+					leds_off(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+					intersection_state_curr = intersection_state_new & NORM_MAIN ;
+				} else if( intersection_state_new & NORM_SECO ){
+					leds_off(LEDS_RED);
+					leds_on(LEDS_GREEN);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+					intersection_state_curr = intersection_state_new & NORM_SECO;
+				} else {
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
+				}
+			}
+			
 		}
 	}
 
