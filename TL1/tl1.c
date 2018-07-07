@@ -52,6 +52,20 @@ static struct broadcast_conn broadcast;
 static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
 static struct runicast_conn runicast;
 
+void detect_intersection_msg(char *data, unsigned char *intersection_state_new)
+{
+	if( strcmp(data, "EMERG-MAIN") == 0 ){
+		*intersection_state_new |= EMER_MAIN;
+	} else if( strcmp(data, "EMERG-SECO") == 0 ) {
+		*intersection_state_new |= EMER_SECO;
+	} else if( strcmp(data, "NORMA-MAIN") == 0 ) {
+		*intersection_state_new |= NORM_MAIN;
+	} else if( strcmp(data, "NORMA-SECO") == 0 ) {
+		*intersection_state_new |= NORM_SECO;
+	}
+}
+
+
 PROCESS_THREAD(Process_1, ev, data) {
 	static struct etimer et;
 	static unsigned char intersection_state_curr= 0x00;
@@ -78,15 +92,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 	while(1) {
 		PROCESS_WAIT_EVENT();
 		if( ev == PROCESS_EVENT_MSG ){
-			if( strcmp(data, "EMERG-MAIN") == 0 ){
-				intersection_state_new |= EMER_MAIN;
-			} else if( strcmp(data, "EMERG-SECO") == 0 ) {
-				intersection_state_new |= EMER_SECO;
-			} else if( strcmp(data, "NORMA-MAIN") == 0 ) {
-				intersection_state_new |= NORM_MAIN;
-			} else if( strcmp(data, "NORMA-SECO") == 0 ) {
-				intersection_state_new |= NORM_SECO;
-			}
+			detect_intersection_msg(data,&intersection_state_new);	
  
  			//printf("intersection_state_new:%x\n",intersection_state_new);
 
@@ -96,12 +102,12 @@ PROCESS_THREAD(Process_1, ev, data) {
 				if( intersection_state_new & (EMER_MAIN | NORM_MAIN) ) {
 					leds_off(LEDS_RED);
 					leds_on(LEDS_GREEN);
-					etimer_set(&et,CLOCK_SECOND*5);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
 				} else if( intersection_state_new & (EMER_SECO | NORM_SECO) ){
 					leds_on(LEDS_RED);
 					leds_off(LEDS_GREEN);
-					etimer_set(&et,CLOCK_SECOND*5);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
 				} 
 			}
@@ -111,10 +117,11 @@ PROCESS_THREAD(Process_1, ev, data) {
 			printf("expired intersection_state_curr:%x\n",intersection_state_curr);
 			if( intersection_state_curr == 0x00 ){
 				leds_toggle(LEDS_GREEN | LEDS_RED );
+				etimer_set(&et,CLOCK_SECOND*1);
 				//printf("nessun veicolo\n");
 			} else {
 				// la macchina è stata schedulata
-				//printf("macchina schedulata\n");
+				printf("macchina schedulata\n");
 				intersection_state_new &= ~intersection_state_curr; 
 				intersection_state_curr = intersection_state_new;
 				leds_off(LEDS_RED | LEDS_GREEN);
@@ -122,25 +129,25 @@ PROCESS_THREAD(Process_1, ev, data) {
 				if( intersection_state_new & EMER_MAIN ) {
 					leds_off(LEDS_RED);
 					leds_on(LEDS_GREEN);
-					etimer_set(&et,CLOCK_SECOND*5);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & EMER_MAIN;
 				} else if( intersection_state_new & EMER_SECO ){
 					leds_on(LEDS_RED);
 					leds_off(LEDS_GREEN);
-					etimer_set(&et,CLOCK_SECOND*5);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & EMER_SECO;
 				} else if( intersection_state_new & NORM_MAIN ){
 					leds_off(LEDS_RED);
 					leds_on(LEDS_GREEN);
-					etimer_set(&et,CLOCK_SECOND*5);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & NORM_MAIN ;
 				} else if( intersection_state_new & NORM_SECO ){
 					leds_on(LEDS_RED);
 					leds_off(LEDS_GREEN);
-					etimer_set(&et,CLOCK_SECOND*5);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & NORM_SECO;
 				} else {
-					etimer_set(&et,CLOCK_SECOND*1);
+					etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 				}
 			}
 			

@@ -92,13 +92,13 @@ PROCESS_THREAD(Process_1, ev, data) {
 				(intersection_state_new & (EMER_MAIN | NORM_MAIN)) ) {
 				leds_off(LEDS_RED);
 				leds_on(LEDS_GREEN);
-				etimer_set(&et,CLOCK_SECOND*5);
+				etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 				intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
 			} else if( intersection_state_curr == 0x00 && 
 				(intersection_state_new & (EMER_SECO | NORM_SECO)) ){
 				leds_on(LEDS_RED);
 				leds_off(LEDS_GREEN);
-				etimer_set(&et,CLOCK_SECOND*5);
+				etimer_set(&et,CLOCK_SECOND*CROSS_PERIOD);
 				intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
 			}
 		}
