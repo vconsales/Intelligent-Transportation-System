@@ -52,7 +52,7 @@ static struct runicast_conn runicast;
 
 PROCESS_THREAD(Process_1, ev, data) {
 	static struct etimer et;
-	char message[12];
+	static char message[12];
 	PROCESS_BEGIN();
 	SENSORS_ACTIVATE(button_sensor);
 
@@ -70,6 +70,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 				// second press, emergency veichle
 				printf("seconda pressione\n");
 				sprintf(message, "EMERG-MAIN");
+				etimer_stop(&et);
 			} else {
 				// timer scaduto
 				sprintf(message, "NORMA-MAIN");
