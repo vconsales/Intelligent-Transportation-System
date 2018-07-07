@@ -80,13 +80,13 @@ PROCESS_THREAD(Process_1, ev, data) {
 	while(1) {
 		PROCESS_WAIT_EVENT;
 		if( ev == PROCESS_EVENT_MSG ){
-			if( strcmp(data, "EMER MAIN") == 0 ){
+			if( strcmp(data, "EMERG-MAIN") == 0 ){
 				intersection_state_new |= EMER_MAIN;
-			} else if( strcmp(data, "EMER SECO") == 0 ) {
+			} else if( strcmp(data, "EMERG-SECO") == 0 ) {
 				intersection_state_new |= EMER_SECO;
-			} else if( strcmp(data, "NORM MAIN") == 0 ) {
+			} else if( strcmp(data, "NORMA-MAIN") == 0 ) {
 				intersection_state_new |= NORM_MAIN;
-			} else if( strcmp(data, "NORM SECO") == 0 ) {
+			} else if( strcmp(data, "NORMA-SECO") == 0 ) {
 				intersection_state_new |= NORM_SECO;
 			}
 
@@ -96,14 +96,14 @@ PROCESS_THREAD(Process_1, ev, data) {
 				(intersection_state_new & (EMER_MAIN | NORM_MAIN)) ) {
 				leds_off(LEDS_RED);
 				leds_on(LEDS_GREEN);
-				etimer_set(CLOCK_SECOND*5);
+				etimer_set(&et,CLOCK_SECOND*5);
 				intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
-			} else if( intersection_state_old == 0x00 && 
+			} else if( intersection_state_curr == 0x00 && 
 				(intersection_state_new & (EMER_SECO | NORM_SECO)) ){
 				leds_on(LEDS_RED);
-				leds_of(LEDS_GREEN);
-				etimer_set(CLOCK_SECOND*5);
-				intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECOO);
+				leds_off(LEDS_GREEN);
+				etimer_set(&et,CLOCK_SECOND*5);
+				intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
 			}
 		}
 		else if( etimer_expired(&et) ){

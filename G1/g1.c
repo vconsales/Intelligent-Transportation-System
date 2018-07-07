@@ -58,6 +58,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 
 	broadcast_open(&broadcast, BROADCAST_PORT, &broadcast_call);
 	// chiudere le connessioni quando si chiude il firmware
+	PROCESS_EXITHANDLER(broadcast_close(&broadcast));
 
 	while(1) {
 		PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event && data == &button_sensor) );

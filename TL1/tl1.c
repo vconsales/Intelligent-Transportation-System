@@ -9,6 +9,7 @@
 #include "dev/leds.h"
 #include "dev/serial-line.h"
 #include "net/rime/rime.h"
+#include "../commons.h"
 
 //semaforo nella strada di emergenza
 
@@ -69,7 +70,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 	recv.u8[0] = 20;
 	recv.u8[1] = 0;
 
-	broadcast_open(&broadcast, 559, &broadcast_call);
+	broadcast_open(&broadcast, BROADCAST_PORT, &broadcast_call);
 	runicast_open(&runicast, 1024, &runicast_calls);
 
 	printf("Starting traffic schedule TL1...\n");
@@ -96,14 +97,14 @@ PROCESS_THREAD(Process_1, ev, data) {
 				(intersection_state_new & (EMER_MAIN | NORM_MAIN)) ) {
 				leds_off(LEDS_RED);
 				leds_on(LEDS_GREEN);
-				etimer_set(CLOCK_SECOND*5);
+				etimer_set(&et,CLOCK_SECOND*5);
 				intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
-			} else if( intersection_state_old == 0x00 && 
+			} else if( intersection_state_curr == 0x00 && 
 				(intersection_state_new & (EMER_SECO | NORM_SECO)) ){
 				leds_on(LEDS_RED);
-				leds_of(LEDS_GREEN);
-				etimer_set(CLOCK_SECOND*5);
-				intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECOO);
+				leds_off(LEDS_GREEN);
+				etimer_set(&et,CLOCK_SECOND*5);
+				intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
 			}
 		}
 		else if( etimer_expired(&et) ){
@@ -113,9 +114,9 @@ PROCESS_THREAD(Process_1, ev, data) {
 				// la macchina è stata schedulata
 				intersection_state_new &= ~intersection_state_curr; 
 				intersection_state_curr = intersection_state_new;
-				if( intersection_state_curr & (EMER_MAIN | NORM_MAIN) ){
+				/*if( intersection_state_curr & (EMER_MAIN | NORM_MAIN) ){
 
-				}
+				}*/
 			}
 			etimer_reset(&et);
 		}
