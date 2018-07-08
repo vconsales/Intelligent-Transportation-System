@@ -1,21 +1,10 @@
-#include "contiki.h"
-#include "stdio.h"
-#include "sys/etimer.h"
-#include "string.h"
-#include "dev/serial-line.h"
-#include "dev/button-sensor.h"
-#include "dev/light-sensor.h"
-#include "dev/sht11/sht11-sensor.h"
-#include "dev/leds.h"
-#include "dev/serial-line.h"
-#include "net/rime/rime.h"
 #include "../commons.h"
 
 //semaforo nella strada di emergenza
 
 PROCESS(Process_1, "traffic_scheduler1");
-PROCESS(Process_2, "sensing_process")
-AUTOSTART_PROCESSES(&Process_1);
+PROCESS(Process_2, "sensing_process");
+AUTOSTART_PROCESSES(&Process_1, &Process_2);
 
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno){
 	static char buf[PACKETBUF_SIZE];
@@ -74,16 +63,8 @@ PROCESS_THREAD(Process_1, ev, data) {
 
 
 	PROCESS_EXITHANDLER(broadcast_close(&broadcast));
-	PROCESS_EXITHANDLER(runicast_close(&runicast));
-
 	PROCESS_BEGIN();
-	
-	static linkaddr_t recv;
-	recv.u8[0] = TL1_ADDR;
-	recv.u8[1] = 0;
-
 	broadcast_open(&broadcast, BROADCAST_PORT, &broadcast_call);
-	runicast_open(&runicast, TL1_TO_G1_PORT, &runicast_calls);
 
 	printf("Starting traffic schedule TL1...\n");
 	leds_on(LEDS_GREEN);
@@ -159,15 +140,27 @@ PROCESS_THREAD(Process_1, ev, data) {
 }
 
 PROCESS_THREAD(Process_2, ev, data){
+	static struct etimer et;
+	PROCESS_EXITHANDLER(runicast_close(&runicast));
+
 	PROCESS_BEGIN();
 	static linkaddr_t my_addr;
-	my_addr.u8[0] = G2_ADDR;
+	my_addr.u8[0] = TL1_ADDR;
 	my_addr.u8[1] = 0;
-	rimeaddr_set_node_addr(&my_addr);
+	linkaddr_set_node_addr (&my_addr);
 
 	static linkaddr_t recv;
 	recv.u8[0] = G1_ADDR;
 	recv.u8[1] = 0;
+
+	runicast_open(&runicast, TL1_TO_G1_PORT, &runicast_calls);
+
+	etimer_set(&et, CLOCK_SECOND*SENSE_PERIOD);
+	while(1) {
+		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+		do_sense(&runicast, &recv);
+	}
+
 
 	PROCESS_END();
 }

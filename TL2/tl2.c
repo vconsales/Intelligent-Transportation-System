@@ -1,20 +1,10 @@
-#include "contiki.h"
-#include "stdio.h"
-#include "sys/etimer.h"
-#include "string.h"
-#include "dev/serial-line.h"
-#include "dev/button-sensor.h"
-#include "dev/light-sensor.h"
-#include "dev/sht11/sht11-sensor.h"
-#include "dev/leds.h"
-#include "dev/serial-line.h"
-#include "net/rime/rime.h"
 #include "../commons.h"
 
 //semaforo nella strada di emergenza
 
 PROCESS(Process_1, "traffic_scheduler2");
-AUTOSTART_PROCESSES(&Process_1);
+PROCESS(Process_2, "sensing_process");
+AUTOSTART_PROCESSES(&Process_1, &Process_2);
 
 //non serve
 /*static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno){
@@ -152,6 +142,20 @@ PROCESS_THREAD(Process_1, ev, data) {
 			
 		}
 	}
+
+	PROCESS_END();
+}
+
+PROCESS_THREAD(Process_2, ev, data){
+	PROCESS_BEGIN();
+	static linkaddr_t my_addr;
+	my_addr.u8[0] = TL2_ADDR;
+	my_addr.u8[1] = 0;
+	linkaddr_set_node_addr (&my_addr);
+
+	static linkaddr_t recv;
+	recv.u8[0] = G1_ADDR;
+	recv.u8[1] = 0;
 
 	PROCESS_END();
 }
