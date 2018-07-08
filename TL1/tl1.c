@@ -39,7 +39,7 @@ static const struct broadcast_callbacks broadcast_call = {broadcast_recv, broadc
 static struct broadcast_conn broadcast;
  
  
-static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
+static const struct runicast_callbacks runicast_calls = {NULL, sent_runicast, timedout_runicast};
 static struct runicast_conn runicast;
 
 void detect_intersection_msg(char *data, unsigned char *intersection_state_new)
@@ -96,7 +96,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 			//printf("intersection_state_curr:%x\n",intersection_state_curr);
 		}
 		else if( etimer_expired(&et) ){
-			printf("expired intersection_state_curr:%x\n",intersection_state_curr);
+			//printf("expired intersection_state_curr:%x\n",intersection_state_curr);
 			if( intersection_state_curr == 0x00 ){
 				leds_toggle(LEDS_GREEN | LEDS_RED );
 				etimer_set(&et,CLOCK_SECOND*TOGGLE_PERIOD);
@@ -154,11 +154,14 @@ PROCESS_THREAD(Process_2, ev, data){
 	recv.u8[1] = 0;
 
 	runicast_open(&runicast, TL1_TO_G1_PORT, &runicast_calls);
-
+	//runicast_open(&runicast, UNICAST_PORT, &runicast_calls);
+	printf("my address: %d.%d\n",linkaddr_node_addr.u8[0],linkaddr_node_addr.u8[1]);
+	
 	etimer_set(&et, CLOCK_SECOND*SENSE_PERIOD);
 	while(1) {
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 		do_sense(&runicast, &recv);
+		etimer_reset(&et);
 	}
 
 	PROCESS_END();

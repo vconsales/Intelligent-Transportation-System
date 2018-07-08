@@ -1,5 +1,5 @@
 CONTIKI_PROJECT = tl2
-all: tl1
+all: tl2
 
 CONTIKI = /home/user/contiki
 ifndef TARGET

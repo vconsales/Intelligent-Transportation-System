@@ -72,7 +72,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 	recv.u8[1] = 0;
 
 	broadcast_open(&broadcast, BROADCAST_PORT, &broadcast_call);
-	runicast_open(&runicast, TL2_TO_GI_PORT, &runicast_calls);
+	runicast_open(&runicast, TL2_TO_G1_PORT, &runicast_calls);
 
 	printf("Starting traffic schedule TL2...\n");
 	leds_on(LEDS_GREEN);
@@ -103,7 +103,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 			}
 			//printf("intersection_state_curr:%x\n",intersection_state_curr);
 		} else if( etimer_expired(&et) ){
-			printf("expired intersection_state_curr:%x\n",intersection_state_curr);
+			//printf("expired intersection_state_curr:%x\n",intersection_state_curr);
 			if( intersection_state_curr == 0x00 ){
 				leds_toggle(LEDS_GREEN | LEDS_RED );
 				etimer_set(&et,CLOCK_SECOND*TOGGLE_PERIOD);
@@ -161,11 +161,14 @@ PROCESS_THREAD(Process_2, ev, data){
 	recv.u8[1] = 0;
 
 	runicast_open(&runicast, TL2_TO_G1_PORT, &runicast_calls);
+	//runicast_open(&runicast, UNICAST_PORT, &runicast_calls);
 
+	printf("my address: %d.%d\n",linkaddr_node_addr.u8[0],linkaddr_node_addr.u8[1]);
 	etimer_set(&et, CLOCK_SECOND*SENSE_PERIOD);
 	while(1) {
 		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
 		do_sense(&runicast, &recv);
+		etimer_reset(&et);
 	}
 
 	PROCESS_END();
