@@ -147,6 +147,9 @@ PROCESS_THREAD(Process_1, ev, data) {
 }
 
 PROCESS_THREAD(Process_2, ev, data){
+	static struct etimer et;
+	PROCESS_EXITHANDLER(runicast_close(&runicast));
+
 	PROCESS_BEGIN();
 	static linkaddr_t my_addr;
 	my_addr.u8[0] = TL2_ADDR;
@@ -156,6 +159,14 @@ PROCESS_THREAD(Process_2, ev, data){
 	static linkaddr_t recv;
 	recv.u8[0] = G1_ADDR;
 	recv.u8[1] = 0;
+
+	runicast_open(&runicast, TL2_TO_G1_PORT, &runicast_calls);
+
+	etimer_set(&et, CLOCK_SECOND*SENSE_PERIOD);
+	while(1) {
+		PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&et));
+		do_sense(&runicast, &recv);
+	}
 
 	PROCESS_END();
 }

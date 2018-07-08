@@ -161,6 +161,5 @@ PROCESS_THREAD(Process_2, ev, data){
 		do_sense(&runicast, &recv);
 	}
 
-
 	PROCESS_END();
 }

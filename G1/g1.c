@@ -83,11 +83,12 @@ PROCESS_THREAD(Process_2, ev, data){
 	PROCESS_EXITHANDLER(close_all());
 	PROCESS_BEGIN();
 
-
 	static linkaddr_t my_addr;
 	my_addr.u8[0] = G1_ADDR;
 	my_addr.u8[1] = 0;
 	linkaddr_set_node_addr (&my_addr);
+
+	static int rec_sens_data = 0;
 
 	runicast_open(&runicast[0], G2_TO_G1_PORT, &runicast_calls);
 	runicast_open(&runicast[1], TL1_TO_G1_PORT, &runicast_calls);
