@@ -13,7 +13,8 @@
 
 //semaforo nella strada di emergenza
 
-PROCESS(Process_1, "traffic_schedule");
+PROCESS(Process_1, "traffic_scheduler1");
+PROCESS(Process_2, "sensing_process")
 AUTOSTART_PROCESSES(&Process_1);
 
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno){
@@ -153,6 +154,20 @@ PROCESS_THREAD(Process_1, ev, data) {
 			
 		}
 	}
+
+	PROCESS_END();
+}
+
+PROCESS_THREAD(Process_2, ev, data){
+	PROCESS_BEGIN();
+	static linkaddr_t my_addr;
+	my_addr.u8[0] = G2_ADDR;
+	my_addr.u8[1] = 0;
+	rimeaddr_set_node_addr(&my_addr);
+
+	static linkaddr_t recv;
+	recv.u8[0] = G1_ADDR;
+	recv.u8[1] = 0;
 
 	PROCESS_END();
 }

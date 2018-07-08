@@ -13,7 +13,7 @@
 
 //semaforo nella strada di emergenza
 
-PROCESS(Process_1, "traffic_schedule");
+PROCESS(Process_1, "traffic_scheduler2");
 AUTOSTART_PROCESSES(&Process_1);
 
 //non serve
