@@ -1,12 +1,14 @@
+#define G1
 #include "../commons.h"
+
+static int battery_lvl = MAX_BATTERY;
+static unsigned char state_rec_data = NO_REC_SENS;
+static sensed_data rec_s[3];
+
 
 PROCESS(Process_1, "ground_sensor1");
 PROCESS(Process_2, "sensing_process");
 AUTOSTART_PROCESSES(&Process_1, &Process_2);
-
-static unsigned char state_rec_data = NO_REC_SENS;
-static sensed_data rec_s[3];
-
 
 static void insert_sensed_data(const linkaddr_t *from, sensed_data *s)
 {
@@ -30,9 +32,6 @@ static void insert_sensed_data(const linkaddr_t *from, sensed_data *s)
 	}
 	printf("v=%d temp=%d hum=%d state_rec_data:%x\n",v,s->temperature,s->humidity,state_rec_data);
 }
-
-
-
 
 static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8_t seqno){
 	//printf("runicast message received from %d.%d, msg:%s\n", from->u8[0], from->u8[1], packetbuf_dataptr());
@@ -90,7 +89,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 
 	while(1) {
 		PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event && data == &button_sensor) );
-		if(ev == sensors_event && data == &button_sensor) {
+		if(ev == sensors_event && data == &button_sensor) { // questo if è inutile
 			etimer_set(&et, CLOCK_SECOND*SECOND_PRESS);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor){
