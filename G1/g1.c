@@ -1,14 +1,15 @@
 #define G1
 #include "../commons.h"
 
-static int battery_lvl = MAX_BATTERY;
 static unsigned char state_rec_data = NO_REC_SENS;
 static sensed_data rec_s[3];
 
 
 PROCESS(Process_1, "ground_sensor1");
-PROCESS(Process_2, "sensing_process");
-AUTOSTART_PROCESSES(&Process_1, &Process_2);
+//PROCESS(Process_2, "sensing_process");
+//AUTOSTART_PROCESSES(&Process_1, &Process_2);
+AUTOSTART_PROCESSES(&Process_1);
+
 
 static void insert_sensed_data(const linkaddr_t *from, sensed_data *s)
 {
@@ -41,7 +42,7 @@ static void recv_runicast(struct runicast_conn *c, const linkaddr_t *from, uint8
 	insert_sensed_data(from,s);
 
 	if( state_rec_data == 0x07 ){
-		process_post(&Process_2,ALL_SENS_REC,NULL);
+		process_post(&Process_1,ALL_SENS_REC,NULL);
 	}
 }
  
@@ -75,11 +76,34 @@ static struct broadcast_conn broadcast;
 static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_runicast, timedout_runicast};
 static struct runicast_conn runicast[3];
 
+
+void close_all()
+{
+	int i;
+	for(i=0; i<3; i++)
+		runicast_close(&runicast[i]);
+}
+
+
 PROCESS_THREAD(Process_1, ev, data) {
 	static struct etimer et;
 	static char message[12];
 	
 	PROCESS_BEGIN();
+	static int humidity;
+	static int temperature;
+	static int i;
+
+	static linkaddr_t my_addr;
+	my_addr.u8[0] = G1_ADDR;
+	my_addr.u8[1] = 0;
+	linkaddr_set_node_addr(&my_addr); 
+
+	runicast_open(&(runicast[0]), G2_TO_G1_PORT, &runicast_calls);
+	runicast_open(&(runicast[1]), TL1_TO_G1_PORT, &runicast_calls);
+	runicast_open(&(runicast[2]), TL2_TO_G1_PORT, &runicast_calls);
+
+	printf("my address: %d.%d\n",linkaddr_node_addr.u8[0],linkaddr_node_addr.u8[1]);
 
 	SENSORS_ACTIVATE(button_sensor);
 
@@ -88,7 +112,9 @@ PROCESS_THREAD(Process_1, ev, data) {
 	PROCESS_EXITHANDLER(broadcast_close(&broadcast));
 
 	while(1) {
-		PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event && data == &button_sensor) );
+		//PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event && data == &button_sensor) );
+		PROCESS_WAIT_EVENT();
+
 		if(ev == sensors_event && data == &button_sensor) { // questo if è inutile
 			etimer_set(&et, CLOCK_SECOND*SECOND_PRESS);
 			PROCESS_WAIT_EVENT();
@@ -103,39 +129,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 			}
 			packetbuf_copyfrom(message, strlen(message)+1);
 			broadcast_send(&broadcast);
-		}
-	}
-	PROCESS_END();
-}
-
-void close_all()
-{
-	int i;
-	for(i=0; i<3; i++)
-		runicast_close(&runicast[i]);
-}
-
-PROCESS_THREAD(Process_2, ev, data){
-	PROCESS_EXITHANDLER(close_all());
-	PROCESS_BEGIN();
-	static int humidity;
-	static int temperature;
-	static int i;
-
-	static linkaddr_t my_addr;
-	my_addr.u8[0] = G1_ADDR;
-	my_addr.u8[1] = 0;
-	linkaddr_set_node_addr(&my_addr); 
-
-	printf("starting process 2 on G1...\n");
-	runicast_open(&(runicast[0]), G2_TO_G1_PORT, &runicast_calls);
-	runicast_open(&(runicast[1]), TL1_TO_G1_PORT, &runicast_calls);
-	runicast_open(&(runicast[2]), TL2_TO_G1_PORT, &runicast_calls);
-
-	printf("my address: %d.%d\n",linkaddr_node_addr.u8[0],linkaddr_node_addr.u8[1]);
-	while(1) {
-		PROCESS_WAIT_EVENT();
-		if( ev == ALL_SENS_REC) {
+		} else if( ev == ALL_SENS_REC) {
 			printf("ricevuti da tutti \n");
 			SENSORS_ACTIVATE(sht11_sensor);
 			humidity = sht11_sensor.value(SHT11_SENSOR_HUMIDITY)/41;
@@ -154,7 +148,5 @@ PROCESS_THREAD(Process_2, ev, data){
 			state_rec_data = NO_REC_SENS;
 		}
 	}
-
-
 	PROCESS_END();
 }
