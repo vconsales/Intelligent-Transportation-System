@@ -77,7 +77,7 @@ static const struct runicast_callbacks runicast_calls = {recv_runicast, sent_run
 static struct runicast_conn runicast[3];
 
 
-void close_all()
+static void close_all()
 {
 	int i;
 	for(i=0; i<3; i++)
@@ -86,7 +86,7 @@ void close_all()
 
 
 PROCESS_THREAD(Process_1, ev, data) {
-	static struct etimer et;
+	static struct etimer second_press_timer;
 	static char message[12];
 	
 	PROCESS_BEGIN();
@@ -116,13 +116,13 @@ PROCESS_THREAD(Process_1, ev, data) {
 		PROCESS_WAIT_EVENT();
 
 		if(ev == sensors_event && data == &button_sensor) { // questo if è inutile
-			etimer_set(&et, CLOCK_SECOND*SECOND_PRESS);
+			etimer_set(&second_press_timer, CLOCK_SECOND*SECOND_PRESS);
 			PROCESS_WAIT_EVENT();
 			if(ev == sensors_event && data == &button_sensor){
 				// second press, emergency veichle
 				printf("seconda pressione\n");
 				sprintf(message, "EMERG-MAIN");
-				etimer_stop(&et);
+				etimer_stop(&second_press_timer);
 			} else {
 				// timer scaduto
 				sprintf(message, "NORMA-MAIN");
@@ -146,6 +146,40 @@ PROCESS_THREAD(Process_1, ev, data) {
 
 			printf("AVG TEMP=%d HUM=%d\n",temperature,humidity);
 			state_rec_data = NO_REC_SENS;
+		}
+	}
+	PROCESS_END();
+}
+
+PROCESS_THREAD(Process_2, ev, data)
+{
+	PROCESS_BEGIN();
+	SENSORS_ACTIVATE(button_sensor);
+	uart1_set_input(serial_line_input_byte);
+	serial_line_init();
+
+	while(1) {
+		PROCESS_WAIT_EVENT_UNTIL((ev == sensors_event && data == &button_sensor) );
+		if(ev == sensors_event && data == &button_sensor)
+		{
+			while(1) {
+				printf("write password: ");
+			
+				PROCESS_WAIT_EVENT_UNTIL( ev == serial_line_event_message );
+				printf("password typed: %s\n",(char *)data);
+				if( strcmp((char *)data,"user") == 0 ){
+					leds_off(LEDS_RED);
+					if(tempe_values_count < 5)
+					{
+						printf("Temperature Average: Not enough values\n");
+					}
+					else
+						printf("Temperature Average: %d\n", get_avg(tempe_values));
+					break;
+				} else {
+					leds_on(LEDS_RED);		
+				}
+			}
 		}
 	}
 	PROCESS_END();
