@@ -7,7 +7,6 @@
 #include "dev/light-sensor.h"
 #include "dev/sht11/sht11-sensor.h"
 #include "dev/leds.h"
-#include "dev/serial-line.h"
 
 PROCESS(Process_1, "exercise41");
 PROCESS(Process_2, "passw");
