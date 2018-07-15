@@ -6,17 +6,24 @@ AUTOSTART_PROCESSES(&Process_1);
 
 static void sent_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions)
 {
+	#ifdef DEBUG
 	printf("runicast message sent to %d.%d, retransmissions %d\n", to->u8[0], to->u8[1], retransmissions);
+	#endif
+	
 }
  
 static void timedout_runicast(struct runicast_conn *c, const linkaddr_t *to, uint8_t retransmissions)
 {
+	#ifdef DEBUG
 	printf("runicast message timed out when sending to %d.%d, retransmissions %d\n", to->u8[0], to->u8[1], retransmissions);
+	#endif
 }
 
 static void broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
+	#ifdef DEBUG
 	printf("broadcast message received from %d.%d: '%s'\n", from->u8[0], from->u8[1], (char *)packetbuf_dataptr());
+	#endif
 	process_post(&Process_1, PROCESS_EVENT_MSG, packetbuf_dataptr());
 }
  
@@ -31,7 +38,6 @@ static void close_all()
 {
 	broadcast_close(&broadcast);
 	runicast_close(&runicast);
-
 }
 
 PROCESS_THREAD(Process_1, ev, data) {
@@ -42,7 +48,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 	
 	PROCESS_EXITHANDLER(close_all());
 	PROCESS_BEGIN();
-	printf("Starting traffic schedule TL2...\n");
+	printf("Starting traffic schedule TL1...\n");
 
 	static linkaddr_t my_addr;
 	my_addr.u8[0] = TL1_ADDR;
@@ -61,7 +67,7 @@ PROCESS_THREAD(Process_1, ev, data) {
 	leds_on(LEDS_RED);
 
 	etimer_set(&leds_timer, CLOCK_SECOND*TOGGLE_PERIOD);
-	etimer_set(&sense_timer, CLOCK_SECOND*SENSE_PERIOD_H);
+	set_sense_timer(&sense_timer, MAX_BATTERY);
 
 	while(1) {
 		PROCESS_WAIT_EVENT();
@@ -76,13 +82,17 @@ PROCESS_THREAD(Process_1, ev, data) {
 				if( intersection_state_new & (EMER_MAIN | NORM_MAIN) ) {
 					leds_off(LEDS_RED);
 					leds_on(LEDS_GREEN);
+					drain_battery(&battery_lvl, LEDS_DRAIN);
 					etimer_set(&leds_timer,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & (EMER_MAIN | NORM_MAIN);
+					intersection_state_new &= ~intersection_state_curr; 
 				} else if( intersection_state_new & (EMER_SECO | NORM_SECO) ){
 					leds_on(LEDS_RED);
 					leds_off(LEDS_GREEN);
+					drain_battery(&battery_lvl, LEDS_DRAIN);
 					etimer_set(&leds_timer,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & (EMER_SECO | NORM_SECO);
+					intersection_state_new &= ~intersection_state_curr; 
 				} 
 			}
 			//printf("intersection_state_curr:%x\n",intersection_state_curr);
@@ -96,45 +106,49 @@ PROCESS_THREAD(Process_1, ev, data) {
 				else
 					leds_off(LEDS_BLUE);
 
+				drain_battery(&battery_lvl, LEDS_DRAIN);
 				etimer_set(&leds_timer,CLOCK_SECOND*TOGGLE_PERIOD);
-				battery_lvl -= LEDS_DRAIN;
 			} else {
-				// la macchina è stata schedulata
-				//printf("macchina schedulata\n");
-				intersection_state_new &= ~intersection_state_curr; 
+				// la macchina è stata schedulata e prendo una nuova decisione di scheduling
 				intersection_state_curr = intersection_state_new;
 				leds_off(LEDS_RED | LEDS_GREEN);
 				
 				if( intersection_state_new & EMER_MAIN ) {
 					leds_off(LEDS_RED);
 					leds_on(LEDS_GREEN);
-					battery_lvl -= LEDS_DRAIN;
+					drain_battery(&battery_lvl, LEDS_DRAIN);
 					etimer_set(&leds_timer,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & EMER_MAIN;
+					intersection_state_new &= ~intersection_state_curr; 
 				} else if( intersection_state_new & EMER_SECO ){
 					leds_on(LEDS_RED);
 					leds_off(LEDS_GREEN);
-					battery_lvl -= LEDS_DRAIN;
+					drain_battery(&battery_lvl, LEDS_DRAIN);
 					etimer_set(&leds_timer,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & EMER_SECO;
+					intersection_state_new &= ~intersection_state_curr; 
 				} else if( intersection_state_new & NORM_MAIN ){
 					leds_off(LEDS_RED);
 					leds_on(LEDS_GREEN);
-					battery_lvl -= LEDS_DRAIN;
+					drain_battery(&battery_lvl, LEDS_DRAIN);
 					etimer_set(&leds_timer,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & NORM_MAIN ;
+					intersection_state_new &= ~intersection_state_curr; 
 				} else if( intersection_state_new & NORM_SECO ){
 					leds_on(LEDS_RED);
 					leds_off(LEDS_GREEN);
-					battery_lvl -= LEDS_DRAIN;
+					drain_battery(&battery_lvl, LEDS_DRAIN);
 					etimer_set(&leds_timer,CLOCK_SECOND*CROSS_PERIOD);
 					intersection_state_curr = intersection_state_new & NORM_SECO;
+					intersection_state_new &= ~intersection_state_curr; 
 				} else {
 					etimer_set(&leds_timer,CLOCK_SECOND*TOGGLE_PERIOD);
 				}
 			}
 		} else if( ev == sensors_event && data == &button_sensor ) {
+			//battery changed
 			battery_lvl = MAX_BATTERY;
+			set_sense_timer(&sense_timer, MAX_BATTERY);
 		} else if( etimer_expired(&sense_timer) ) {
 			//printf("sono TL1, mando temp\n");
 			do_sense(&runicast, &recv, &battery_lvl);
